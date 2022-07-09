@@ -14,16 +14,6 @@
     count: 生成するキーの数
     seed: シード値
 */
-// static void random_keys(int *keys, int count, int seed) {
-//   sfmt_t sfmt;
-//   int i;
-  
-//   sfmt_init_gen_rand(&sfmt, seed);
-//   for (i = 0; i < count; i++) {
-//     uint32_t key = sfmt_genrand_uint32(&sfmt) % count;
-//     keys[i] = key;
-//   }
-// }
 static void random_keys(int *keys, int count, int seed) {
   sfmt_t sfmt;
   int i;
@@ -88,7 +78,6 @@ static void benchmark(int count) {
   keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
   root = NULL;
   random_keys(keys, NUM_ADDNODE, SEED);
-  // random_keys2(keys, count, SEED);
   // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
     root = insert(root, keys[i]);
@@ -108,9 +97,10 @@ static void test1(int count, char *fname) {
   random_keys(keys, NUM_ADDNODE, SEED);
   // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
-    root = insert_fnode(root, keys[i]);
+    printf("%d\n", i);
+    root = insert(root, keys[i]);
   }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, f_rotations, getHeight(root), getminDepth(root));
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
   FILE *of = fopen(fname, "w");
   fdumpTree(root, NULL, of);
   clearTree(root);
@@ -126,19 +116,12 @@ static void test2(int count, char *fname) {
   random_keys(keys, NUM_ADDNODE, SEED);
   // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
-    root = insert(root, keys[i]);
+    root = insert_fnode(root, keys[i]);
   }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, f_rotations, getHeight(root), getminDepth(root));
   FILE *of = fopen(fname, "w");
   fdumpTree(root, NULL, of);
   clearTree(root);
-}
-
-void test3(void) {
-  KEY *keys;
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
-  random_keys(keys, NUM_ADDNODE, SEED);
-  dumpkeys(keys, NUM_ADDNODE);
 }
 
 int main(int argc, char *argv[]) {
@@ -149,12 +132,8 @@ int main(int argc, char *argv[]) {
     fname = argv[1];
   }
   begin = clock();
-  // benchmark(NUM_ADDNODE);
-  // benchmark(50);
-  // benchmark(100);
-  // test1(NUM_ADDNODE, fname);
-  test2(NUM_ADDNODE, fname);
-  // test3();
+  test1(NUM_ADDNODE, fname);
+  // test2(NUM_ADDNODE, fname);
   end = clock();
   printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
   return 0;

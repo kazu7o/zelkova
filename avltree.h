@@ -9,7 +9,6 @@ NODE *insert(NODE *root, KEY key);
 void clearTree(NODE *root);
 void dumpTree(NODE *node, NODE *par);
 void fdumpTree(NODE *node, NODE *par, FILE *of);
-void preorder(NODE *);
 
 extern int rotations;
 

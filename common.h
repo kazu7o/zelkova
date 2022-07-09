@@ -9,7 +9,7 @@ typedef struct _NODE {
   int passnum;
 } NODE;
 
-NODE *malloc_fnode(KEY key);
+NODE *malloc_node(KEY key);
 void error(char *mes);
 int max(int a, int b);
 

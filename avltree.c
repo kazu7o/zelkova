@@ -4,11 +4,6 @@
 #include <limits.h>
 #include "avltree.h"
 
-// #define DEBUG
-
-float min_rate = 1.0;
-float max_rate = 0.0;
-float min_lc, min_rc;
 int rotations = 0;
 
 /*
@@ -69,25 +64,12 @@ int getminDepth(NODE *root) {
   R_Rotate -- 右回転
     root: 回転する部分木の根ノード
 */
-// static NODE *R_Rotate(NODE *root) {
-//   NODE *pivot = root->left;
-//   root->left = pivot->right;
-//   pivot->right = root;
-//   return pivot;
-// }
 static NODE *R_Rotate(NODE *root) {
   NODE *pivot = root->left;
   root->left = pivot->right;
   pivot->right = root;
 
   rotations++;
-
-  /* passnumの更新 */
-  int pivot_right_left = pivot->right->left == NULL ? 0 : pivot->right->left->passnum;
-  int pivot_right_right = pivot->right->right == NULL ? 0 : pivot->right->right->passnum;
-  int pivot_left = pivot->left == NULL ? 0 : pivot->left->passnum;
-  pivot->right->passnum = pivot_right_left + pivot_right_right + 1;
-  pivot->passnum = pivot_left + pivot->right->passnum + 1;
 
   return pivot;
 }
@@ -96,25 +78,12 @@ static NODE *R_Rotate(NODE *root) {
   L_Rotate -- 左回転
     root: 回転する部分木の根ノード
 */
-// static NODE *L_Rotate(NODE *root) {
-//   NODE *pivot = root->right;
-//   root->right = pivot->left;
-//   pivot->left = root;
-//   return pivot;
-// }
 static NODE *L_Rotate(NODE *root) {
   NODE *pivot = root->right;
   root->right = pivot->left;
   pivot->left = root;
 
   rotations++;
-
-  /* passnumの更新 */
-  int pivot_left_left = pivot->left->left == NULL ? 0 : pivot->left->left->passnum;
-  int pivot_left_right = pivot->left->right == NULL ? 0 : pivot->left->right->passnum;
-  int pivot_right = pivot->right == NULL ? 0 : pivot->right->passnum;
-  pivot->left->passnum = pivot_left_left + pivot_left_right + 1;
-  pivot->passnum = pivot->left->passnum + pivot_right + 1;
 
   return pivot;
 }
@@ -166,99 +135,21 @@ NODE *insert(NODE *root, KEY key) {
     p->right = insert(p->right, key);
   }
   
-  // #ifdef DEBUG
-  // float lc = p->left == NULL ? 0 : p->left->passnum;
-  // float rc = p->right == NULL ? 0 : p->right->passnum;
-  // float lr = lc / rc;
-  // if (lc != 0 && rc != 0) {
-  //   if (lr >= 4 || lr <= 0.25) {
-  //     printf("[DEBUG] left childs: %.0f right childs: %.0f\n", lc, rc);
-  //   }
-  // }
-  // #endif
-
-  #ifdef DEBUG
-    static int j = 1;
-  #endif
-
-  #ifdef DEBUG
-    static int j = 1;
-  #endif
-
   // 平衡化
   balance = getHeight(p->left) - getHeight(p->right);
-  #ifdef DEBUG
-    printf("balance: %d\n", balance);
-  #endif
   if (balance >= 2) { // 左部分木が高く、非平衡
-    #ifdef DEBUG
-    float lc = p->left == NULL ? 0 : p->left->passnum;
-    float rc = p->right == NULL ? 0 : p->right->passnum;
-    float rate = fabs(lc-rc)/(lc+rc);
-    if (lc != 0 && rc != 0) {
-      if ((lc >= rc*2+1 && lc < 4*rc) || (lc*2+1 <= rc && rc < 4*lc)) {
-        if ((lc==1||lc==3) && (rc==1||rc==3)) {
-          printf("[ROTATE %5d] left childs: %.f right childs: %.f rate: %.5f\n", j++, lc, rc, rate);
-        }
-      }
-      if (rate < min_rate) {
-        min_rate = rate;
-        min_lc = lc;
-        min_rc = rc;
-      }
-    }
-    #endif
     if (getHeight(p->left->left) > getHeight(p->left->right)) { // Left Left Case
       p = R_Rotate(p);
     } else {  // Left Right Case
       p = LR_Rotate(p);
     }
   } else if (balance <= -2) { // 右部分木が高く、非平衡
-    #ifdef DEBUG
-    float lc = p->left == NULL ? 0 : p->left->passnum;
-    float rc = p->right == NULL ? 0 : p->right->passnum;
-    float rate = fabs(lc-rc)/(lc+rc);
-    if (lc != 0 && rc != 0) {
-      if ((lc >= rc*2+1 && lc < 4*rc) || (lc*2+1 <= rc && rc < 4*lc)) {
-        if ((lc==1||lc==3) && (rc==1||rc==3)) {
-          printf("[ROTATE %5d] left childs: %.f right childs: %.f rate: %.5f\n", j++, lc, rc, rate);
-        }
-      }
-      if (rate < min_rate) {
-        min_rate = rate;
-        min_lc = lc;
-        min_rc = rc;
-      }
-    }
-    #endif
     if (getHeight(p->right->left) > getHeight(p->right->right)) { // Right Left Case
       p = RL_Rotate(p);
     } else {  // Right Right Case
       p = L_Rotate(p);
     }
   }
-  #ifdef DEBUG
-  else {
-    static int i = 1;
-    float lc = p->left == NULL ? 0 : p->left->passnum;
-    float rc = p->right == NULL ? 0 : p->right->passnum;
-    float rate = fabs(lc-rc)/(lc+rc);
-    float _rate = lc/rc;
-    if (lc != 0 && rc != 0) {
-      if ((lc >= rc*2+1 && lc < 4*rc) || (lc*2+1 <= rc && rc < 4*lc)) {
-        if (lc!=1 && rc!=1) {
-          if (lc==3 || rc==3) {
-            printf("[NO ROTATE %5d] left childs: %.f right childs: %.f rate: %.5f balance: %d\n", i++, lc, rc, rate, balance);
-          }
-        }
-        if (rate > max_rate) {
-          max_rate = rate;
-        }
-      }
-    }
-  }
-  #endif
-
   return p;
 }
 
@@ -341,13 +232,5 @@ void fdumpTree(NODE *node, NODE *par, FILE *of) {
   if (par == NULL) {
     fprintf(of, "}\n");
     fclose(of);
-  }
-}
-
-void preorder(NODE *node) {
-  if (node != NULL) {
-    printf("%d ", node->data);
-    preorder(node->left);
-    preorder(node->right);
   }
 }

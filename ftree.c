@@ -2,15 +2,13 @@
 #include <stdlib.h>
 #include "ftree.h"
 
-#include "avltree.h"
-// #define DEBUG
-
 int f_rotations = 0;
 
 /*
   R_Rotate -- 右回転
     p_root: 回転する部分木の根ノード
     root: 根ノード
+    parent: 回転する部分木の根ノードの親ノード
 */
 static NODE *R_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   NODE *pivot = p_root->left;
@@ -36,7 +34,9 @@ static NODE *R_Rotate(NODE *p_root, NODE **root, NODE *parent) {
 
 /*
   L_Rotate -- 左回転
-    root: 回転する部分木の根ノード
+    p_root: 回転する部分木の根ノード
+    root: 根ノード
+    parent: 回転する部分木の根ノードの親ノード
 */
 static NODE *L_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   NODE *pivot = p_root->right;
@@ -62,7 +62,9 @@ static NODE *L_Rotate(NODE *p_root, NODE **root, NODE *parent) {
 
 /*
   LR_Rotate -- 左->右回転
-    root: 回転する部分木の根ノード
+    p_root: 回転する部分木の根ノード
+    root: 根ノード
+    parent: 回転する部分木の根ノードの親ノード
 */
 static NODE *LR_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   p_root->left = L_Rotate(p_root->left, root, p_root);
@@ -71,12 +73,13 @@ static NODE *LR_Rotate(NODE *p_root, NODE **root, NODE *parent) {
 
 /*
   RL_Rotate -- 右->左回転
-    root: 回転する部分木の根ノード
+    p_root: 回転する部分木の根ノード
+    root: 根ノード
+    parent: 回転する部分木の根ノードの親ノード
 */
 static NODE *RL_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   p_root->right = R_Rotate(p_root->right, root, p_root);
   p_root = L_Rotate(p_root, root, parent);
-  // dumpTree(p_root, NULL);
   return p_root;
 }
 
@@ -84,7 +87,7 @@ static NODE *RL_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   malloc_fnode -- 新しいノードに必要な領域を確保する
     key: ノードのデータ
 */
-NODE *malloc_fnode(KEY key) {
+NODE *malloc_node(KEY key) {
   NODE *new;
   if ((new = (NODE *)malloc(sizeof(NODE))) == NULL) {
     error("out of memory!");
@@ -107,23 +110,20 @@ NODE *insert_fnode(NODE *root, KEY key) {
 
   p = &root;
   parent = NULL;
-  if ((*p) == NULL) {
-    (*p) = malloc_fnode(key);
-    return (*p);
+  if (*p == NULL) {
+    *p = malloc_node(key);
+    return *p;
   }
   
   /* 根ノードから葉ノードへ順にノードを挿入する場所を探索 */
   while (1) {
-    #ifdef DEBUG
-    printf("[DEBUG] data: %d key: %d passnum: %d\n", p->data, key, p->passnum);
-    #endif
     /* 部分木に含まれるノード数が1のとき、回転は行わない */
     if ((*p)->passnum == 1) {
       (*p)->passnum++;
       if (key < (*p)->data) {
-        (*p)->left = malloc_fnode(key);
+        (*p)->left = malloc_node(key);
       } else {
-        (*p)->right = malloc_fnode(key);
+        (*p)->right = malloc_node(key);
       } 
       return root;
     }
@@ -134,32 +134,34 @@ NODE *insert_fnode(NODE *root, KEY key) {
       /* 左部分木が無いとき */
       if ((*p)->left == NULL) {
         if (key < (*p)->data) {
-          (*p)->left = malloc_fnode(key);
+          (*p)->left = malloc_node(key);
           return root;
-        } else if (key < (*p)->right->data) {
+        }
+        if (key < (*p)->right->data) {
           (*p)->right->passnum++;
-          (*p)->right->left = malloc_fnode(key);
+          (*p)->right->left = malloc_node(key);
           *p = RL_Rotate(*p, &root, parent);
           return root; 
         } else if (key >= (*p)->right->data) {
           (*p)->right->passnum++;
-          (*p)->right->right = malloc_fnode(key);
+          (*p)->right->right = malloc_node(key);
           *p = L_Rotate(*p, &root, parent);
           return root;
         }
       /* 右部分木が無いとき */
       } else {
         if (key >= (*p)->data) {
-          (*p)->right = malloc_fnode(key);
+          (*p)->right = malloc_node(key);
           return root;
-        } else if (key < (*p)->left->data) {
+        }
+        if (key < (*p)->left->data) {
           (*p)->left->passnum++;
-          (*p)->left->left = malloc_fnode(key);
+          (*p)->left->left = malloc_node(key);
           *p = R_Rotate(*p, &root, parent);
           return root;
         } else if (key >= (*p)->left->data) {
           (*p)->left->passnum++;
-          (*p)->left->right = malloc_fnode(key);
+          (*p)->left->right = malloc_node(key);
           *p = LR_Rotate(*p, &root, parent);
           return root;
         }
@@ -168,13 +170,13 @@ NODE *insert_fnode(NODE *root, KEY key) {
 
     /* 部分木に含まれるノード数が2より大きく、回転の条件を満たす場合 */
     if ((*p)->left->passnum >= 4*(*p)->right->passnum) {  // 左部分木が高く、非平衡
-      if ((*p)->left->left->passnum > (*p)->left->right->passnum) {
-        *p = R_Rotate(*p, &root, parent);
-      } else {
+      if ((*p)->left->right->passnum > (*p)->left->left->passnum) {
         *p = LR_Rotate(*p, &root, parent);
+      } else {
+        *p = R_Rotate(*p, &root, parent);
       }
     } else if (4*(*p)->left->passnum <= (*p)->right->passnum) { // 右部分木が高く、非平衡
-      if ((*p)->right->left->passnum > (*p)->right->right->passnum) {
+      if ((*p)->right->right->passnum < (*p)->right->left->passnum) {
         *p = RL_Rotate(*p, &root, parent);
       } else {
         *p = L_Rotate(*p, &root, parent);
@@ -182,7 +184,7 @@ NODE *insert_fnode(NODE *root, KEY key) {
     }
 
     /* ノード挿入位置の探索 */
-    parent = (*p);
+    parent = *p;
     (*p)->passnum++;
     if (key < (*p)->data) {
       p = &(*p)->left;
