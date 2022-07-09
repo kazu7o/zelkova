@@ -4,9 +4,10 @@
 #include "SFMT.h"
 #include "avltree.h"
 #include "ftree.h"
+#include "zelkova.h"
 
 #define NUM_ADDNODE 100000
-#define SEED 0
+#define SEED 3
 
 /*
   random_keys -- ランダムなキー配列を生成する
@@ -97,12 +98,9 @@ static void test1(int count, char *fname) {
   random_keys(keys, NUM_ADDNODE, SEED);
   // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
-    printf("%d\n", i);
     root = insert(root, keys[i]);
   }
   printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
-  FILE *of = fopen(fname, "w");
-  fdumpTree(root, NULL, of);
   clearTree(root);
 }
 
@@ -119,8 +117,23 @@ static void test2(int count, char *fname) {
     root = insert_fnode(root, keys[i]);
   }
   printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, f_rotations, getHeight(root), getminDepth(root));
-  FILE *of = fopen(fname, "w");
-  fdumpTree(root, NULL, of);
+  clearTree(root);
+}
+
+static void test3(int count, char *fname) {
+  KEY *keys;
+  int i;
+  NODE *root;
+
+  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
+  root = NULL;
+  random_keys(keys, NUM_ADDNODE, SEED);
+  // dumpkeys(keys, count);
+  for (i = 0; i < count; i++) {
+    root = insert_znode(root, keys[i]);
+  }
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, z_rotations, getHeight(root), getminDepth(root));
+  // FILE *of = fopen(fname, "w");
   clearTree(root);
 }
 
@@ -133,7 +146,14 @@ int main(int argc, char *argv[]) {
   }
   begin = clock();
   test1(NUM_ADDNODE, fname);
-  // test2(NUM_ADDNODE, fname);
+  end = clock();
+  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  begin = clock();
+  test2(NUM_ADDNODE, fname);
+  end = clock();
+  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  begin = clock();
+  test3(NUM_ADDNODE, fname);
   end = clock();
   printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
   return 0;
