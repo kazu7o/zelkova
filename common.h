@@ -1,5 +1,6 @@
 #ifndef COMMON_H_
 #define COMMON_H_
+#include <stdio.h>
 
 typedef int KEY;
 typedef struct _NODE {
@@ -9,8 +10,13 @@ typedef struct _NODE {
   int passnum;
 } NODE;
 
-NODE *malloc_node(KEY key);
 void error(char *mes);
 int max(int a, int b);
+int getHeight(NODE *root);
+int getminDepth(NODE *root);
+NODE *malloc_node(KEY key);
+void clearTree(NODE *root);
+void dumpTree(NODE *node, NODE *par, FILE *of);
+NODE *search(NODE *root, KEY key);
 
 #endif

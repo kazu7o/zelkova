@@ -7,7 +7,7 @@
 #include "zelkova.h"
 
 #define NUM_ADDNODE 100000
-#define SEED 3
+#define SEED 5
 
 /*
   random_keys -- ランダムなキー配列を生成する
@@ -79,12 +79,13 @@ static void benchmark(int count) {
   keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
   root = NULL;
   random_keys(keys, NUM_ADDNODE, SEED);
-  // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
-    root = insert(root, keys[i]);
+    root = insert_znode(root, keys[i]);
+    if ((i+1) == 10 || (i+1) == 50 || (i+1) == 100 || (i+1) == 500 || (i+1) == 1000 || (i+1) == 5000 || (i+1) == 10000 || (i+1) == 50000 || (i+1) == 100000) {
+      printf("%d,%d\n", i+1, z_rotations);
+    }
   }
   printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
-  dumpTree(root, NULL);
   clearTree(root);
 }
 
@@ -96,7 +97,6 @@ static void test1(int count, char *fname) {
   keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
   root = NULL;
   random_keys(keys, NUM_ADDNODE, SEED);
-  // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
     root = insert(root, keys[i]);
   }
@@ -112,7 +112,6 @@ static void test2(int count, char *fname) {
   keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
   root = NULL;
   random_keys(keys, NUM_ADDNODE, SEED);
-  // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
     root = insert_fnode(root, keys[i]);
   }
@@ -128,12 +127,12 @@ static void test3(int count, char *fname) {
   keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
   root = NULL;
   random_keys(keys, NUM_ADDNODE, SEED);
-  // dumpkeys(keys, count);
   for (i = 0; i < count; i++) {
     root = insert_znode(root, keys[i]);
   }
   printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, z_rotations, getHeight(root), getminDepth(root));
-  // FILE *of = fopen(fname, "w");
+  FILE *of = fopen(fname, "w");
+  dumpTree(root, NULL, of);
   clearTree(root);
 }
 
@@ -144,16 +143,20 @@ int main(int argc, char *argv[]) {
   if (argc == 2) {
     fname = argv[1];
   }
+  // begin = clock();
+  // test1(NUM_ADDNODE, fname);
+  // end = clock();
+  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  // begin = clock();
+  // test2(NUM_ADDNODE, fname);
+  // end = clock();
+  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  // begin = clock();
+  // test3(NUM_ADDNODE, fname);
+  // end = clock();
+  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
   begin = clock();
-  test1(NUM_ADDNODE, fname);
-  end = clock();
-  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
-  begin = clock();
-  test2(NUM_ADDNODE, fname);
-  end = clock();
-  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
-  begin = clock();
-  test3(NUM_ADDNODE, fname);
+  benchmark(NUM_ADDNODE);
   end = clock();
   printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
   return 0;
