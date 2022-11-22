@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "zelkova.h"
 
 int z_rotations = 0;
+NODE *z_root = NULL;
 
 /*
   R_Rotate -- 右回転
@@ -81,19 +83,27 @@ static NODE *RL_Rotate(NODE *p_root, NODE **root, NODE *parent) {
     root: 挿入する部分木の根ノード
     key: 挿入するデータ
 */
-NODE *insert_znode(NODE *root, KEY key) {
+// NODE *insert_znode(NODE *root, KEY key) {
+NODE *insert_znode(void *_key) {
   NODE **p;
   NODE *parent;
+  KEY key;
 
-  p = &root;
+  pthread_mutex_lock(&mutex);
+  p = &z_root;
   parent = NULL;
+  key = *(KEY *)_key;
   if (*p == NULL) {
     *p = malloc_node(key);
+    z_root = *p;
+    pthread_mutex_unlock(&mutex);
     return *p;
   }
+  pthread_mutex_unlock(&mutex);
   
   /* 根ノードから葉ノードへ順にノードを挿入する場所を探索 */
   while (1) {
+    pthread_mutex_lock(&mutex);
     /* 部分木に含まれるノード数が1のとき、回転は行わない */
     if ((*p)->passnum == 1) {
       (*p)->passnum++;
@@ -102,7 +112,8 @@ NODE *insert_znode(NODE *root, KEY key) {
       } else {
         (*p)->right = malloc_node(key);
       } 
-      return root;
+      pthread_mutex_unlock(&mutex);
+      return z_root;
     }
 
     /* 部分木に含まれるノード数が2のとき、回転の条件を確認 */
@@ -112,35 +123,41 @@ NODE *insert_znode(NODE *root, KEY key) {
       if ((*p)->left == NULL) {
         if (key < (*p)->data) {
           (*p)->left = malloc_node(key);
-          return root;
+          pthread_mutex_unlock(&mutex);
+          return z_root;
         }
         if (key < (*p)->right->data) {
           (*p)->right->passnum++;
           (*p)->right->left = malloc_node(key);
-          *p = RL_Rotate(*p, &root, parent);
-          return root; 
+          *p = RL_Rotate(*p, &z_root, parent);
+          pthread_mutex_unlock(&mutex);
+          return z_root; 
         } else if (key >= (*p)->right->data) {
           (*p)->right->passnum++;
           (*p)->right->right = malloc_node(key);
-          *p = L_Rotate(*p, &root, parent);
-          return root;
+          *p = L_Rotate(*p, &z_root, parent);
+          pthread_mutex_unlock(&mutex);
+          return z_root;
         }
       /* 右部分木が無いとき */
       } else {
         if (key >= (*p)->data) {
           (*p)->right = malloc_node(key);
-          return root;
+          pthread_mutex_unlock(&mutex);
+          return z_root;
         }
         if (key < (*p)->left->data) {
           (*p)->left->passnum++;
           (*p)->left->left = malloc_node(key);
-          *p = R_Rotate(*p, &root, parent);
-          return root;
+          *p = R_Rotate(*p, &z_root, parent);
+          pthread_mutex_unlock(&mutex);
+          return z_root;
         } else if (key >= (*p)->left->data) {
           (*p)->left->passnum++;
           (*p)->left->right = malloc_node(key);
-          *p = LR_Rotate(*p, &root, parent);
-          return root;
+          *p = LR_Rotate(*p, &z_root, parent);
+          pthread_mutex_unlock(&mutex);
+          return z_root;
         }
       }
     }
@@ -148,15 +165,15 @@ NODE *insert_znode(NODE *root, KEY key) {
     /* 部分木に含まれるノード数が2より大きく、回転の条件を満たす場合 */
     if ((*p)->left->passnum >= 2*(*p)->right->passnum+2) {  // 左部分木が高く、非平衡
       if ((*p)->left->right->passnum > (*p)->left->left->passnum) {
-        *p = LR_Rotate(*p, &root, parent);
+        *p = LR_Rotate(*p, &z_root, parent);
       } else {
-        *p = R_Rotate(*p, &root, parent);
+        *p = R_Rotate(*p, &z_root, parent);
       }
     } else if (2*(*p)->left->passnum+2 <= (*p)->right->passnum) { // 右部分木が高く、非平衡
       if ((*p)->right->right->passnum < (*p)->right->left->passnum) {
-        *p = RL_Rotate(*p, &root, parent);
+        *p = RL_Rotate(*p, &z_root, parent);
       } else {
-        *p = L_Rotate(*p, &root, parent);
+        *p = L_Rotate(*p, &z_root, parent);
       }
     }
 
@@ -168,6 +185,7 @@ NODE *insert_znode(NODE *root, KEY key) {
     } else {
       p = &(*p)->right;
     }
+    pthread_mutex_unlock(&mutex);
   }
-  return root;
+  return z_root;
 }

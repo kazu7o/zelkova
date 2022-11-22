@@ -3,8 +3,10 @@
 
 #include "common.h"
 
-NODE *insert_znode(NODE *root, KEY key);
+NODE *insert_znode(void *_key);
 
 extern int z_rotations;
+extern NODE *z_root;
+extern pthread_mutex_t mutex;
 
 #endif
