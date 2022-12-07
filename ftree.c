@@ -84,22 +84,6 @@ static NODE *RL_Rotate(NODE *p_root, NODE **root, NODE *parent) {
 }
 
 /*
-  malloc_fnode -- 新しいノードに必要な領域を確保する
-    key: ノードのデータ
-*/
-NODE *malloc_node(KEY key) {
-  NODE *new;
-  if ((new = (NODE *)malloc(sizeof(NODE))) == NULL) {
-    error("out of memory!");
-  }
-  new->left    = NULL;
-  new->right   = NULL;
-  new->data    = key;
-  new->passnum = 1;
-  return new;
-}
-
-/*
   insert_fnode -- 要素を挿入する（再帰的）
     root: 挿入する部分木の根ノード
     key: 挿入するデータ

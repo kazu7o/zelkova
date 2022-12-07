@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
+#include <pthread.h>
 #include "common.h"
 
 /*
@@ -60,6 +61,23 @@ int getminDepth(NODE *root) {
     r = getminDepth(root->right);
   }
   return ((l > r) ? r : l) + 1;
+}
+
+/*
+  malloc_fnode -- 新しいノードに必要な領域を確保する
+    key: ノードのデータ
+*/
+NODE *malloc_node(KEY key) {
+  NODE *new;
+  if ((new = (NODE *)malloc(sizeof(NODE))) == NULL) {
+    error("out of memory!");
+  }
+  new->left    = NULL;
+  new->right   = NULL;
+  new->data    = key;
+  new->passnum = 1;
+  pthread_mutex_init(&new->mutex, NULL);
+  return new;
 }
 
 /*
@@ -132,4 +150,16 @@ NODE *search(NODE *root, KEY key) {
     }
   }
   return NULL;
+}
+
+/*
+  node_mutex_destroy -- 各ノードが持つMutexオブジェクトを破棄
+  p: 木構造の根ノードを指すポインタ
+*/
+void node_mutex_destroy(NODE *p) {
+  if (p != NULL) {
+    pthread_mutex_destroy(&p->mutex);
+    node_mutex_destroy(p->left);
+    node_mutex_destroy(p->right);
+  }
 }
