@@ -77,6 +77,7 @@ NODE *malloc_node(KEY key) {
   new->data    = key;
   new->passnum = 1;
   pthread_mutex_init(&new->mutex, NULL);
+  new->rotated = NULL;
   return new;
 }
 

@@ -30,6 +30,12 @@ static NODE *R_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   if (parent == NULL) {
     *root = pivot;
   }
+
+  /* 待機スレッドの注目ノードをpivotにするための処理 */
+  if (p_root->mutex.__data.__lock >= 2) {
+    p_root->rotated = pivot;
+  }
+
   return pivot;
 }
 
@@ -55,6 +61,12 @@ static NODE *L_Rotate(NODE *p_root, NODE **root, NODE *parent) {
   if (parent == NULL) {
     *root = pivot;
   }
+
+  /* 待機スレッドの注目ノードをpivotにするための処理 */
+  if (p_root->mutex.__data.__lock >= 2) {
+    p_root->rotated = pivot;
+  }
+
   return pivot;
 }
 
@@ -92,6 +104,7 @@ NODE *insert_znode(KEY key) {
   NODE *parent;
 
   pthread_mutex_lock(&mutex_root);
+  printf("key: %d\n", key);
   p = &z_root;
   parent = NULL;
   // key = *(KEY *)_key;
@@ -101,11 +114,22 @@ NODE *insert_znode(KEY key) {
     pthread_mutex_unlock(&mutex_root);
     return *p;
   }
+
   pthread_mutex_unlock(&mutex_root);
   
   /* 根ノードから葉ノードへ順にノードを挿入する場所を探索 */
   while (1) {
+    // printf("[ws] p.data: %d p.lock: %d adr: %p\n", (*p)->data, (*p)->mutex.__data.__lock, *p);
     pthread_mutex_lock(&(*p)->mutex);
+    if ((*p)->rotated != NULL) {
+      NODE **temp = p;
+      p = &(*p)->rotated;
+      if ((*p)->mutex.__data.__lock <= 1) {
+        (*temp)->rotated = NULL;
+      }
+      pthread_mutex_unlock(&(*temp)->mutex);
+      continue;
+    }
     /* 部分木に含まれるノード数が1のとき、回転は行わない */
     if ((*p)->passnum == 1) {
       (*p)->passnum++;
@@ -135,7 +159,7 @@ NODE *insert_znode(KEY key) {
           *p = RL_Rotate(*p, &z_root, parent);
           pthread_mutex_unlock(&(*p)->left->mutex);
           pthread_mutex_unlock(&(*p)->mutex);
-          printf("rl1data: %d lock: %d\n", (*p)->left->data, (*p)->left->mutex.__data.__lock);
+          printf("rl1data: %d lock: %d adr: %p\n", (*p)->left->data, (*p)->left->mutex.__data.__lock, (*p)->left);
           return z_root; 
         } else if (key >= (*p)->right->data) {
           (*p)->right->passnum++;
@@ -170,7 +194,7 @@ NODE *insert_znode(KEY key) {
           *p = LR_Rotate(*p, &z_root, parent);
           pthread_mutex_unlock(&(*p)->right->mutex);
           pthread_mutex_unlock(&(*p)->mutex);
-          printf("lr1data: %d lock: %d\n", (*p)->right->data, (*p)->right->mutex.__data.__lock);
+          printf("lr1data: %d lock: %d adr: %p\n", (*p)->right->data, (*p)->right->mutex.__data.__lock, (*p)->right);
           return z_root;
         }
       }
@@ -212,7 +236,7 @@ NODE *insert_znode(KEY key) {
       p = &(*p)->right;
     }
     pthread_mutex_unlock(&parent->mutex);
-    printf("p.data: %d p.lock: %d\n", (*p)->data, (*p)->mutex.__data.__lock);
+    printf("p.data: %d p.lock: %d adr: %p\n", (*p)->data, (*p)->mutex.__data.__lock, *p);
   }
   return z_root;
 }

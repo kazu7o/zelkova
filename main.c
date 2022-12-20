@@ -9,14 +9,13 @@
 #include "zelkova.h"
 #include "common.h"
 
-#define NUM_ADDNODE 100000
-#define NUM_THREAD 8
 #define SEED 0
 
 KEY *keys;
 typedef struct _THREAD_DATA {
   int start;
   int end;
+  int num_addnode;
 } THREAD_DATA;
 
 /*
@@ -62,12 +61,12 @@ static void dumpkeys(int *keys, int count) {
 }
 
 static void th_insert(void *_args) {
-  int i, end;
+  int i, end, num_addnode;
   THREAD_DATA *args = (THREAD_DATA *)_args;
   i = args->start;
   end = args->end;
-  while (i < end && i < NUM_ADDNODE) {
-    printf("key: %d\n", keys[i]);
+  num_addnode = args->num_addnode;
+  while (i < end && i < num_addnode) {
     insert_znode(keys[i]);
     i++;
   }
@@ -76,67 +75,60 @@ static void th_insert(void *_args) {
 /*
   benchmark -- 木構造の性能評価テスト
 */
-static void benchmark(void) {
+static double benchmark(int num_thread, int num_addnode) {
+  clock_t begin, end;
   int i, dw;
-  pthread_t thread[NUM_THREAD];
-  THREAD_DATA th_data[NUM_THREAD];
+  pthread_t thread[num_thread];
+  THREAD_DATA th_data[num_thread];
 
   pthread_mutex_init(&mutex_root, NULL);
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
-  random_keys(keys, NUM_ADDNODE, SEED);
+  keys = (KEY *)malloc(sizeof(KEY) * num_addnode);
+  random_keys(keys, num_addnode, SEED);
 
-  dw = (int)ceil((double)NUM_ADDNODE / (double)NUM_THREAD);
+  dw = (int)ceil((double)num_addnode / (double)num_thread);
   printf("dw: %d\n", dw);
 
-  for (i = 0; i < NUM_THREAD; i++) {
+  begin = clock();
+  for (i = 0; i < num_thread; i++) {
     th_data[i].start = i * dw;
     th_data[i].end = th_data[i].start + dw;
+    th_data[i].num_addnode = num_addnode;
     if (pthread_create(&thread[i], NULL, (void *)th_insert, (void *)&th_data[i]) != 0) {
       error("can not create thread");
     }
   }
-  for (i = 0; i < NUM_THREAD; i++) {
+  for (i = 0; i < num_thread; i++) {
     if (pthread_join(thread[i], NULL) != 0) {
       error("can not join thread");
     }
   }
 
-  // for (i = 0; i < NUM_ADDNODE;) {
-  //   for (j = 0; j < NUM_THREAD; j++) {
-  //     if (i + j >= NUM_ADDNODE) {
-  //       break;
-  //     }
-  //     if (pthread_create(&thread[j], NULL, (void *)insert_znode, (void *)&keys[i+j]) != 0) {
-  //       error("can not create thread");
-  //     }
-  //   }
-  //   for (j = 0; j < NUM_THREAD; j++) {
-  //     if (i + j >= NUM_ADDNODE) {
-  //       break;
-  //     }
-  //     if (pthread_join(thread[j], NULL) != 0) {
-  //       error("can not join thread");
-  //     }
-  //   }
-  //   i += NUM_THREAD;
-  // }
-
+  end = clock();
   pthread_mutex_destroy(&mutex_root);
 
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", NUM_ADDNODE, 
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, 
   z_rotations, getHeight(z_root), getminDepth(z_root));
-  FILE *of = fopen("zelkova.dot", "w");
-  dumpTree(z_root, NULL, of);
+  // FILE *of = fopen("zelkova.dot", "w");
+  // dumpTree(z_root, NULL, of);
+
+  return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
-int main(void) {
-  clock_t begin, end;
+int main(int argc, char **argv) {
+  double et;
+  int num_thread, num_addnode;
 
-  begin = clock();
-  benchmark();
-  end = clock();
+  if (argc != 3) {
+    fprintf(stderr, "Error: too few arguments\n");
+    return EXIT_FAILURE;
+  }
+
+  num_thread = atoi(argv[1]);
+  num_addnode = atoi(argv[2]);
+
+  et = benchmark(num_thread, num_addnode);
   node_mutex_destroy(z_root);
   clearTree(z_root);
-  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  printf("Execution Time = %lf [s]\n", et);
   return 0;
 }

@@ -9,6 +9,7 @@ typedef struct _NODE {
   KEY data;
   int passnum;
   pthread_mutex_t mutex;
+  struct _NODE *rotated;
 } NODE;
 
 void error(char *mes);
