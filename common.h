@@ -8,8 +8,8 @@ typedef struct _NODE {
   struct _NODE *right;
   KEY data;
   int passnum;
-  pthread_mutex_t mutex;
-  struct _NODE *rotated;
+  pthread_mutex_t mutex_left;
+  pthread_mutex_t mutex_right;
 } NODE;
 
 void error(char *mes);
@@ -21,5 +21,6 @@ void clearTree(NODE *root);
 void dumpTree(NODE *node, NODE *par, FILE *of);
 NODE *search(NODE *root, KEY key);
 void node_mutex_destroy(NODE *p);
+void inorder(NODE *p, FILE *of);
 
 #endif

@@ -13,6 +13,7 @@
 
 KEY *keys;
 typedef struct _THREAD_DATA {
+  int thread_no;
   int start;
   int end;
   int num_addnode;
@@ -86,7 +87,6 @@ static double benchmark(int num_thread, int num_addnode) {
   random_keys(keys, num_addnode, SEED);
 
   dw = (int)ceil((double)num_addnode / (double)num_thread);
-  printf("dw: %d\n", dw);
 
   begin = clock();
   for (i = 0; i < num_thread; i++) {
@@ -106,8 +106,7 @@ static double benchmark(int num_thread, int num_addnode) {
   end = clock();
   pthread_mutex_destroy(&mutex_root);
 
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, 
-  z_rotations, getHeight(z_root), getminDepth(z_root));
+  printf("nodes: %d\nthreads: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, num_thread, z_rotations, getHeight(z_root), getminDepth(z_root));
   // FILE *of = fopen("zelkova.dot", "w");
   // dumpTree(z_root, NULL, of);
 
@@ -118,7 +117,7 @@ int main(int argc, char **argv) {
   double et;
   int num_thread, num_addnode;
 
-  if (argc != 3) {
+  if (argc != 4) {
     fprintf(stderr, "Error: too few arguments\n");
     return EXIT_FAILURE;
   }
@@ -127,6 +126,8 @@ int main(int argc, char **argv) {
   num_addnode = atoi(argv[2]);
 
   et = benchmark(num_thread, num_addnode);
+  FILE *of = fopen(argv[3], "w");
+  inorder(z_root, of);
   node_mutex_destroy(z_root);
   clearTree(z_root);
   printf("Execution Time = %lf [s]\n", et);

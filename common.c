@@ -76,8 +76,8 @@ NODE *malloc_node(KEY key) {
   new->right   = NULL;
   new->data    = key;
   new->passnum = 1;
-  pthread_mutex_init(&new->mutex, NULL);
-  new->rotated = NULL;
+  pthread_mutex_init(&new->mutex_left, NULL);
+  pthread_mutex_init(&new->mutex_right, NULL);
   return new;
 }
 
@@ -155,12 +155,26 @@ NODE *search(NODE *root, KEY key) {
 
 /*
   node_mutex_destroy -- 各ノードが持つMutexオブジェクトを破棄
-  p: 木構造の根ノードを指すポインタ
+    p: 木構造の根ノードを指すポインタ
 */
 void node_mutex_destroy(NODE *p) {
   if (p != NULL) {
-    pthread_mutex_destroy(&p->mutex);
+    pthread_mutex_destroy(&p->mutex_left);
+    pthread_mutex_destroy(&p->mutex_right);
     node_mutex_destroy(p->left);
     node_mutex_destroy(p->right);
+  }
+}
+
+/*
+  inorder -- 木のデータを通りがけ順でファイルに出力
+    p: ノードのアドレス
+    of: 出力先のファイルポインタ
+*/
+void inorder(NODE *p, FILE *of) {
+  if (p != NULL) {
+    inorder(p->left, of);
+    fprintf(of, "%d ", p->data);
+    inorder(p->right, of);
   }
 }

@@ -1,8 +1,8 @@
 TARGET = main
 SRCS = main.c common.c avltree.c ftree.c zelkova.c SFMT.c
 OBJS = $(SRCS:%.c=%.o)
-CC = gcc -lm
-CFLAGS = -W -Wall -g -DSFMT_MEXP=19937 -msse2 -lpthread
+CC = gcc -lm -lpthread
+CFLAGS = -W -Wall -g -DSFMT_MEXP=19937 -msse2
 
 # ターゲットファイル生成
 $(TARGET): $(OBJS)
