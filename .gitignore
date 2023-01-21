@@ -1,0 +1,6 @@
+SFMT/*
+*.o
+*.dot
+main
+sorted*
+log*

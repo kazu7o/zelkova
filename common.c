@@ -133,3 +133,17 @@ NODE *search(NODE *root, KEY key) {
   }
   return NULL;
 }
+
+/*
+  inorder -- 木のデータを通りがけ順でファイルに出力
+    p: ノードのアドレス
+    of: 出力先のファイルポインタ
+*/
+void inorder(NODE *p, FILE *of) {
+  if (p != NULL) {
+    inorder(p->left, of);
+    fprintf(of, "%d ", p->data);
+    inorder(p->right, of);
+  }
+}
+     

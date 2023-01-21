@@ -18,5 +18,6 @@ NODE *malloc_node(KEY key);
 void clearTree(NODE *root);
 void dumpTree(NODE *node, NODE *par, FILE *of);
 NODE *search(NODE *root, KEY key);
+void inorder(NODE *p, FILE *of);
 
 #endif

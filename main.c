@@ -29,7 +29,7 @@ static void random_keys(int *keys, int count, int seed) {
   i = count - 1;
   sfmt_init_gen_rand(&sfmt, seed);
   while (i > 0) {
-    uint32_t j = sfmt_genrand_uint32(&sfmt) % (i + 1);
+    uint64_t j = sfmt_genrand_uint64(&sfmt) % (i + 1);
     tmp = keys[j];
     keys[j] = keys[i];
     keys[i] = tmp;
@@ -68,96 +68,96 @@ static void dumpkeys(int *keys, int count) {
 }
 
 /*
-  benchmark -- 木構造の性能評価テスト
+  test_zelkova -- zelkovaの性能評価テスト
+    num_addnode: 挿入するデータの数
+*/
+static double test_zelkova(int num_addnode, char *fname) {
+  clock_t begin, end;
+  KEY *keys;
+  int i;
+  NODE *root;
+
+  keys = (KEY *)malloc(sizeof(KEY) * num_addnode);
+  root = NULL;
+  random_keys(keys, num_addnode, SEED);
+
+  begin = clock();
+  for (i = 0; i < num_addnode; i++) {
+    root = insert_znode(root, keys[i]);
+  }
+  end = clock();
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, z_rotations, getHeight(root), getminDepth(root));
+  //printf("nodes: %ld\nrotations: %ld\n", num_addnode, z_rotations);
+  FILE *of = fopen(fname, "w");
+  inorder(root, of);
+  clearTree(root);
+  return (double)(end - begin) / CLOCKS_PER_SEC;
+}
+
+/*
+  test_ftree -- F木の性能評価テスト
     count: 挿入するデータの数
 */
-static void benchmark(int count) {
+static double test_ftree(int num_addnode, char *fname) {
+  clock_t begin, end;
   KEY *keys;
   int i;
   NODE *root;
 
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
+  keys = (KEY *)malloc(sizeof(KEY) * num_addnode);
   root = NULL;
-  random_keys(keys, NUM_ADDNODE, SEED);
-  for (i = 0; i < count; i++) {
-    root = insert_znode(root, keys[i]);
-    if ((i+1) == 10 || (i+1) == 50 || (i+1) == 100 || (i+1) == 500 || (i+1) == 1000 || (i+1) == 5000 || (i+1) == 10000 || (i+1) == 50000 || (i+1) == 100000) {
-      printf("%d,%d\n", i+1, z_rotations);
-    }
-  }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
-  clearTree(root);
-}
+  random_keys(keys, num_addnode, SEED);
 
-static void test1(int count, char *fname) {
-  KEY *keys;
-  int i;
-  NODE *root;
-
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
-  root = NULL;
-  random_keys(keys, NUM_ADDNODE, SEED);
-  for (i = 0; i < count; i++) {
-    root = insert(root, keys[i]);
-  }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, rotations, getHeight(root), getminDepth(root));
-  clearTree(root);
-}
-
-static void test2(int count, char *fname) {
-  KEY *keys;
-  int i;
-  NODE *root;
-
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
-  root = NULL;
-  random_keys(keys, NUM_ADDNODE, SEED);
-  for (i = 0; i < count; i++) {
+  begin = clock();
+  for (i = 0; i < num_addnode; i++) {
     root = insert_fnode(root, keys[i]);
   }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, f_rotations, getHeight(root), getminDepth(root));
+  end = clock();
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, f_rotations, getHeight(root), getminDepth(root));
+  FILE *of = fopen(fname, "w");
+  inorder(root, of);
   clearTree(root);
+  return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
-static void test3(int count, char *fname) {
+/*
+  test_avl -- AVL木の性能評価テスト
+    count: 挿入するデータの数
+*/
+static double test_avl(int num_addnode, char *fname) {
+  clock_t begin, end;
   KEY *keys;
   int i;
   NODE *root;
 
-  keys = (KEY *)malloc(sizeof(KEY) * NUM_ADDNODE);
+  keys = (KEY *)malloc(sizeof(KEY) * num_addnode);
   root = NULL;
-  random_keys(keys, NUM_ADDNODE, SEED);
-  for (i = 0; i < count; i++) {
-    root = insert_znode(root, keys[i]);
+  random_keys(keys, num_addnode, SEED);
+
+  begin = clock();
+  for (i = 0; i < num_addnode; i++) {
+    root = insert(root, keys[i]);
   }
-  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", count, z_rotations, getHeight(root), getminDepth(root));
+  end = clock();
+  printf("nodes: %d\nrotations: %d\nheight: %d\nmin_depth: %d\n", num_addnode, rotations, getHeight(root), getminDepth(root));
   FILE *of = fopen(fname, "w");
-  dumpTree(root, NULL, of);
+  inorder(root, of);
   clearTree(root);
+  return (double)(end - begin) / CLOCKS_PER_SEC;
 }
 
 int main(int argc, char *argv[]) {
+  double et;
+  int num_addnode;
   char *fname = "hoge.dot";
-  clock_t begin, end;
 
-  if (argc == 2) {
-    fname = argv[1];
+  if (argc != 3) {
+    fprintf(stderr, "Error: too few arguments\n");
+    return EXIT_FAILURE;
   }
-  // begin = clock();
-  // test1(NUM_ADDNODE, fname);
-  // end = clock();
-  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
-  // begin = clock();
-  // test2(NUM_ADDNODE, fname);
-  // end = clock();
-  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
-  // begin = clock();
-  // test3(NUM_ADDNODE, fname);
-  // end = clock();
-  // printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
-  begin = clock();
-  benchmark(NUM_ADDNODE);
-  end = clock();
-  printf("Execution Time = %lf [s]\n", (double)(end - begin) / CLOCKS_PER_SEC);
+  num_addnode = atoi(argv[1]);
+  fname = argv[2];
+  et = test_zelkova(num_addnode, fname);
+  printf("Execution Time = %lf [s]\n", et);
   return 0;
 }
